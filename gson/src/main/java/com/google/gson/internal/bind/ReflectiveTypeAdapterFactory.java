@@ -205,28 +205,43 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
       if (in.peek() == JsonToken.NULL) {
         in.nextNull();
         return null;
-      }
-
-      T instance = constructor.construct();
-
-      try {
-        in.beginObject();
-        while (in.hasNext()) {
-          String name = in.nextName();
-          BoundField field = boundFields.get(name);
-          if (field == null || !field.deserialized) {
-            in.skipValue();
-          } else {
-            field.read(in, instance);
+      } else if (in.peek() == JsonToken.STRING) {
+        in.nextString();
+        return null;
+      } else if (in.peek() == JsonToken.BOOLEAN) {
+        in.nextBoolean();
+        return null;
+      } else if (in.peek() == JsonToken.NAME) {
+        in.nextName();
+        return null;
+      } else if (in.peek() == JsonToken.NUMBER) {
+        in.nextDouble();
+        return null;
+      } else if (in.peek() == JsonToken.BEGIN_ARRAY) {
+        in.beginArray();
+        in.endArray();
+        return null;
+      } else {
+        T instance = constructor.construct();
+        try {
+          in.beginObject();
+          while (in.hasNext()) {
+            String name = in.nextName();
+            BoundField field = boundFields.get(name);
+            if (field == null || !field.deserialized) {
+              in.skipValue();
+            } else {
+              field.read(in, instance);
+            }
           }
+        } catch (IllegalStateException e) {
+          throw new JsonSyntaxException(e);
+        } catch (IllegalAccessException e) {
+          throw new AssertionError(e);
         }
-      } catch (IllegalStateException e) {
-        throw new JsonSyntaxException(e);
-      } catch (IllegalAccessException e) {
-        throw new AssertionError(e);
+        in.endObject();
+        return instance;
       }
-      in.endObject();
-      return instance;
     }
 
     @Override public void write(JsonWriter out, T value) throws IOException {

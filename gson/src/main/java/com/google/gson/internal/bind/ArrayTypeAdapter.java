@@ -64,28 +64,38 @@ public final class ArrayTypeAdapter<E> extends TypeAdapter<Object> {
     if (in.peek() == JsonToken.NULL) {
       in.nextNull();
       return null;
-    }
-    List<E> list = new ArrayList<E>();
-    try{
-        in.beginArray();
-        while (in.hasNext()) {
-          E instance = componentTypeAdapter.read(in);
-          list.add(instance);
-        }
-        in.endArray();
-    } catch (IllegalStateException e){
-      if(Gson.StrictMode){
-        throw e;
+    } else if (in.peek() == JsonToken.STRING) {
+      in.nextString();
+      return null;
+    } else if (in.peek() == JsonToken.BOOLEAN) {
+      in.nextBoolean();
+      return null;
+    } else if (in.peek() == JsonToken.NAME) {
+      in.nextName();
+      return null;
+    } else if (in.peek() == JsonToken.NUMBER) {
+      in.nextDouble();
+      return null;
+    } else if (in.peek() == JsonToken.BEGIN_OBJECT) {
+      in.beginObject();
+      in.endObject();
+      return null;
+    } else {
+      List<E> list = new ArrayList<E>();
+      in.beginArray();
+      while (in.hasNext()) {
+        E instance = componentTypeAdapter.read(in);
+        list.add(instance);
       }
-        in.skipValue();
-    }
+      in.endArray();
 
-    int size = list.size();
-    Object array = Array.newInstance(componentType, size);
-    for (int i = 0; i < size; i++) {
-      Array.set(array, i, list.get(i));
+      int size = list.size();
+      Object array = Array.newInstance(componentType, size);
+      for (int i = 0; i < size; i++) {
+        Array.set(array, i, list.get(i));
+      }
+      return array;
     }
-    return array;
   }
 
   @SuppressWarnings("unchecked")

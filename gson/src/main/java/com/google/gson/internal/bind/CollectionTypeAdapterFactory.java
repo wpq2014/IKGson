@@ -74,23 +74,32 @@ public final class CollectionTypeAdapterFactory implements TypeAdapterFactory {
       if (in.peek() == JsonToken.NULL) {
         in.nextNull();
         return null;
-      }
-
-      Collection<E> collection = constructor.construct();
-      try{
+      } else if (in.peek() == JsonToken.STRING) {
+        in.nextString();
+        return null;
+      } else if (in.peek() == JsonToken.BOOLEAN) {
+        in.nextBoolean();
+        return null;
+      } else if (in.peek() == JsonToken.NAME) {
+        in.nextName();
+        return null;
+      } else if (in.peek() == JsonToken.NUMBER) {
+        in.nextDouble();
+        return null;
+      } else if (in.peek() == JsonToken.BEGIN_OBJECT) {
+        in.beginObject();
+        in.endObject();
+        return null;
+      } else {
+        Collection<E> collection = constructor.construct();
         in.beginArray();
         while (in.hasNext()) {
           E instance = elementTypeAdapter.read(in);
           collection.add(instance);
         }
         in.endArray();
-      }catch (IllegalStateException e){
-        if(Gson.StrictMode){
-          throw e;
-        }
-        in.skipValue();
+        return collection;
       }
-      return collection;
     }
 
     @Override public void write(JsonWriter out, Collection<E> collection) throws IOException {
